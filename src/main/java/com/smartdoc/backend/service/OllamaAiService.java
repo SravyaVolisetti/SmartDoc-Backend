@@ -19,13 +19,14 @@ public class OllamaAiService {
 
     private static final String GEMINI_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/"
-            + "gemini-2.5-flash:generateContent";
+                    + "gemini-3.8-flash:generateContent";
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
     public OllamaAiService() {
         this.objectMapper = new ObjectMapper();
+
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(20))
                 .build();
@@ -54,17 +55,14 @@ public class OllamaAiService {
                         "parts", List.of(Map.of(
                                 "text",
                                 "You are a careful document assistant. "
-                                + "Return only the requested result, "
-                                + "without introductory commentary."
+                                        + "Return only the requested result, "
+                                        + "without introductory commentary."
                         ))
                 ),
                 "contents", List.of(Map.of(
                         "role", "user",
                         "parts", List.of(Map.of("text", prompt))
-                )),
-                "generationConfig", Map.of(
-                        "temperature", 0.2
-                )
+                ))
         );
 
         String apiKey = System.getenv("GEMINI_API_KEY");
@@ -117,6 +115,7 @@ public class OllamaAiService {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+
             throw new IOException(
                     "The AI request was interrupted.", e);
         }
