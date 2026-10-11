@@ -1,3 +1,4 @@
+
 package com.smartdoc.backend.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,19 +17,17 @@ import java.util.Map;
 @Service
 public class OllamaAiService {
 
-    private static final String OLLAMA_URL =
-            "http://localhost:11434/api/chat";
-
-    private static final String MODEL = "qwen2.5:3b";
+    private static final String GEMINI_URL =
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            + "gemini-2.5-flash:generateContent";
 
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
     public OllamaAiService() {
         this.objectMapper = new ObjectMapper();
-
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(15))
+                .connectTimeout(Duration.ofSeconds(20))
                 .build();
     }
 
@@ -51,30 +50,37 @@ public class OllamaAiService {
                 + documentText;
 
         Map<String, Object> body = Map.of(
-                "model", MODEL,
-                "messages", List.of(
-                        Map.of(
-                                "role", "system",
-                                "content",
+                "systemInstruction", Map.of(
+                        "parts", List.of(Map.of(
+                                "text",
                                 "You are a careful document assistant. "
-                                        + "Return only the requested result, "
-                                        + "without introductory commentary."
-                        ),
-                        Map.of(
-                                "role", "user",
-                                "content", prompt
-                        )
+                                + "Return only the requested result, "
+                                + "without introductory commentary."
+                        ))
                 ),
-                "stream", false,
-                "options", Map.of("temperature", 0.2)
+                "contents", List.of(Map.of(
+                        "role", "user",
+                        "parts", List.of(Map.of("text", prompt))
+                )),
+                "generationConfig", Map.of(
+                        "temperature", 0.2
+                )
         );
+
+        String apiKey = System.getenv("GEMINI_API_KEY");
+
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IOException(
+                    "GEMINI_API_KEY is missing from the backend environment.");
+        }
 
         String json = objectMapper.writeValueAsString(body);
 
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(OLLAMA_URL))
+                .uri(URI.create(GEMINI_URL))
                 .timeout(Duration.ofMinutes(3))
                 .header("Content-Type", "application/json")
+                .header("x-goog-api-key", apiKey)
                 .POST(HttpRequest.BodyPublishers.ofString(json))
                 .build();
 
@@ -87,27 +93,30 @@ public class OllamaAiService {
             if (response.statusCode() < 200
                     || response.statusCode() >= 300) {
                 throw new IOException(
-                        "Ollama returned HTTP "
+                        "Gemini returned HTTP "
                                 + response.statusCode()
                                 + ": " + response.body());
             }
 
             JsonNode root = objectMapper.readTree(response.body());
 
-            String result = root.path("message")
+            String result = root.path("candidates")
+                    .path(0)
                     .path("content")
+                    .path("parts")
+                    .path(0)
+                    .path("text")
                     .asText("");
 
             if (result.isBlank()) {
                 throw new IOException(
-                        "Ollama returned an empty response.");
+                        "Gemini returned an empty response.");
             }
 
             return result.trim();
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-
             throw new IOException(
                     "The AI request was interrupted.", e);
         }
