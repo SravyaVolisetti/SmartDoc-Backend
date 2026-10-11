@@ -14,10 +14,10 @@ import jakarta.servlet.http.HttpServletResponse;
 public final class SpaCsrfTokenRequestHandler
         implements CsrfTokenRequestHandler {
 
-    private final CsrfTokenRequestHandler plain =
+    private final CsrfTokenRequestAttributeHandler plain =
             new CsrfTokenRequestAttributeHandler();
 
-    private final CsrfTokenRequestHandler xor =
+    private final XorCsrfTokenRequestAttributeHandler xor =
             new XorCsrfTokenRequestAttributeHandler();
 
     @Override
