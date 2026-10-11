@@ -89,12 +89,18 @@ public class SecurityConfig {
             DaoAuthenticationProvider authenticationProvider)
             throws Exception {
 
+        CookieCsrfTokenRepository csrfRepository =
+                CookieCsrfTokenRepository.withHttpOnlyFalse();
+
+        csrfRepository.setCookieCustomizer(cookie -> cookie
+                .sameSite("None")
+                .secure(true)
+        );
+
         http
             .cors(cors -> {})
             .csrf(csrf -> csrf
-                .csrfTokenRepository(
-                    CookieCsrfTokenRepository.withHttpOnlyFalse()
-                )
+                .csrfTokenRepository(csrfRepository)
                 .csrfTokenRequestHandler(
                     new SpaCsrfTokenRequestHandler()
                 )
