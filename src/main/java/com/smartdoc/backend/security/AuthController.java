@@ -62,10 +62,14 @@ public class AuthController {
             String email) {
     }
 
-    @GetMapping("/csrf")
-    public Map<String, String> csrf(CsrfToken token) {
-        return Map.of("headerName", token.getHeaderName());
-    }
+    
+@GetMapping("/csrf")
+public Map<String, String> csrf(CsrfToken token) {
+    return Map.of(
+        "headerName", token.getHeaderName(),
+        "token", token.getToken()
+    );
+}
 
     @PostMapping("/register")
     public ResponseEntity<?> register(
